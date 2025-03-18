@@ -1,0 +1,35 @@
+# Byte-compiled / package files
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+venv/
+env/
+*.egg-info/
+*.dist-info/
+pip-wheel-metadata/
+
+# Django stuff
+db.sqlite3
+*.sqlite3
+*.log
+
+# Static & media files
+staticfiles/
+media/
+
+# Ignore local environment variables
+.env
+*.env
+
+# Ignore IDE settings
+.vscode/
+.idea/
+*.iml
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore Docker-specific files
+docker-compose.override.yml
