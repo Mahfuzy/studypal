@@ -30,7 +30,7 @@ SECRET_KEY = 'django-insecure-rkiw6j-xqvfxel+)e6)$lf_qkg^ac5twhci0+h5w*0igu4sdpg
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['studypal-20ig.onrender.com']
 
 
 # Application definition
