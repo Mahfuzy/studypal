@@ -1,6 +1,7 @@
 import time
 from django.core.cache import cache
 from celery import shared_task
+from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, views, status
 from rest_framework.response import Response
 from .models import Course, Lesson, Enrollment
@@ -162,9 +163,32 @@ class LessonListCreateView(generics.ListCreateAPIView):
         return Lesson.objects.filter(course_id=self.kwargs['course_id'])
 
     def perform_create(self, serializer):
-        course = Course.objects.get(id=self.kwargs['course_id'])
+        course = get_object_or_404(Course, id=self.kwargs['course_id'])
         lesson = serializer.save(course=course)
-        rate_limited_ai_request(generate_lesson_insights, lesson.id, f'lesson_insights_{lesson.id}')
+
+        # Ensure the AI request doesn't crash the process
+        try:
+            rate_limited_ai_request(generate_lesson_insights, lesson.id, f'lesson_insights_{lesson.id}')
+        except Exception as e:
+            # Log error instead of failing request (adjust logging as needed)
+            print(f"AI request failed for Lesson {lesson.id}: {e}")
+
+class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = LessonSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        return Lesson.objects.filter(course_id=self.kwargs['course_id'])
+
+    def perform_update(self, serializer):
+        lesson = serializer.save()
+
+        # Ensure the AI request doesn't crash the process
+        try:
+            rate_limited_ai_request(generate_lesson_insights, lesson.id, f'lesson_insights_{lesson.id}')
+        except Exception as e:
+            print(f"AI request failed for Lesson {lesson.id}: {e}")
+        
 
 class EnrollmentListCreateView(generics.ListCreateAPIView):
     serializer_class = EnrollmentSerializer

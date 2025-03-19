@@ -34,6 +34,7 @@ Your role is to help students by providing **both direct answers and explanation
 - If it's an **image (screenshot of notes, graphs, diagrams)**, describe the content and explain its relevance.
 """
 
+
 # ✅ Celery Task for File Processing
 @shared_task
 def process_uploaded_file(file_bytes, file_name):
