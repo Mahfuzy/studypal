@@ -5,9 +5,22 @@ FROM python:3.11
 ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
-# Install dependencies
+# Install system dependencies (for Pillow, psycopg2, etc.)
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    libjpeg-dev \
+    zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip before installing dependencies
+RUN python -m pip install --upgrade pip
+
+# Copy dependency list first (to leverage Docker caching)
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+
+# Install Python dependencies with increased timeout
+RUN pip install --no-cache-dir --default-timeout=100 -r requirements.txt
 
 # Copy project files
 COPY . .
