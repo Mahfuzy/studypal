@@ -24,8 +24,8 @@ jobs:
 
       - name: Build and Push Docker Image
         run: |
-          docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/studypal:latest .
-          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/studypal:latest
+          docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/studypal-backend:latest .
+          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/studypal-backend:latest
 
       - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@master
@@ -34,9 +34,9 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/studypal:latest
-            docker stop studypal || true
-            docker rm studypal || true
-            docker run -d --name studypal -p 80:80 \
+            docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/studypal-backend:latest
+            docker stop studypal-backend || true
+            docker rm studypal-backend || true
+            docker run -d --name studypal-backend -p 80:80 \
               --env-file /home/${{ secrets.SERVER_USER }}/.env \
               ${{ secrets.DOCKER_HUB_USERNAME }}/studypal:latest
