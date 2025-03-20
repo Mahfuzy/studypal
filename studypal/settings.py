@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     "corsheaders",
     'rest_framework',
+    'drf_spectacular',
     'rest_framework.authtoken',
     'allauth',
     'allauth.account',
@@ -120,11 +121,7 @@ WSGI_APPLICATION = 'studypal.wsgi.application'
 
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL'), 
-        conn_max_age=600,  # Keeps connections open for performance
-        ssl_require=True    # Ensures SSL is used for security
-    )
+    'default': dj_database_url.config(default=os.getenv('DATABASE_URL'))
 }
 
 
@@ -208,6 +205,7 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.BasicAuthentication",
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",  # Move this outside
 }
 
 # If using dj-rest-auth, allow login/logout without CSRF
