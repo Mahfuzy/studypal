@@ -6,31 +6,13 @@ services:
     command: daphne -b 0.0.0.0 -p 8000 studypal.asgi:application
     volumes:
       - .:/app
-      - static_volume:/app/staticfiles
-      - media_volume:/app/media
-    expose:
-      - "8000"
+    ports:
+      - "8000:8000"
     depends_on:
       - redis
-      - db
     env_file: 
       - .env
 
   redis:
     image: redis:latest
     restart: always
-
-  db:
-    image: postgres:latest
-    restart: always
-    env_file:
-      - .env
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-
-volumes:
-  static_volume:
-  media_volume:
-  postgres_data:
