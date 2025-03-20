@@ -120,10 +120,12 @@ WSGI_APPLICATION = 'studypal.wsgi.application'
 
 
 DATABASES = {
-    'ENGINE': 'django.db.backends.postgresql',
-    'default': dj_database_url.config(os.getenv('DATABASE_URL'))
+    'default': dj_database_url.config(
+        default=os.getenv('DATABASE_URL'), 
+        conn_max_age=600,  # Keeps connections open for performance
+        ssl_require=True    # Ensures SSL is used for security
+    )
 }
-
 
 
 # Password validation
