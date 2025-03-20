@@ -120,6 +120,7 @@ WSGI_APPLICATION = 'studypal.wsgi.application'
 
 
 DATABASES = {
+    'ENGINE': 'django.db.backends.postgresql',
     'default': dj_database_url.config(env='DATABASE_URL')
 }
 
