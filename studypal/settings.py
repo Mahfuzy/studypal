@@ -120,15 +120,10 @@ WSGI_APPLICATION = 'studypal.wsgi.application'
 
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('POSTGRES_DB'),  # Database name
-        'USER': os.getenv('POSTGRES_USER'),  # Database username
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD'),  # Database password
-        'HOST': os.getenv('POSTGRES_HOST'),  # Database host (use 'db' if running in Docker)
-        'PORT': os.getenv('POSTGRES_PORT', '5432'),  # PostgreSQL default port
-    }
+    'ENGINE': 'django.db.backends.postgresql',
+    'default': dj_database_url.config(os.getenv('DATABASE_URL'))
 }
+
 
 
 # Password validation
