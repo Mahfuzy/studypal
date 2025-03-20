@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.core.validators import MinValueValidator
+from cloudinary.models import CloudinaryField
 
 class StudyStreak(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='study_streaks')
@@ -50,7 +51,7 @@ class Achievement(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
     achievement_type = models.CharField(max_length=20, choices=ACHIEVEMENT_TYPES)
-    icon = models.ImageField(upload_to='achievement_icons/', null=True, blank=True)
+    icon = CloudinaryField(null=True, blank=True)
     awarded_on = models.DateTimeField(auto_now_add=True)
     points = models.PositiveIntegerField(default=0)
     is_public = models.BooleanField(default=True)
@@ -95,7 +96,7 @@ class Badge(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="badges")
     title = models.CharField(max_length=255)
     description = models.TextField()
-    icon = models.ImageField(upload_to="badges/")
+    icon = CloudinaryField(null=True, blank=True)
     awarded_on = models.DateTimeField(auto_now_add=True)
 
     class Meta:

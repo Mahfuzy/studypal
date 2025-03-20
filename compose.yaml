@@ -13,6 +13,8 @@ services:
     depends_on:
       - redis
       - db
+    env_file: 
+      - .env
 
   nginx:
     image: nginx:latest
@@ -31,12 +33,13 @@ services:
 
   db:
     image: postgres:latest
-    environment:
-      POSTGRES_DB: mydatabase
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
+    restart: always
+    env_file:
+      - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
 
 volumes:
   static_volume:
