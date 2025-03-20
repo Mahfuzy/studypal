@@ -9,7 +9,7 @@ from .models import DashboardStats
 from .serializers import DashboardStatsSerializer
 from accounts.models import CustomUser
 from study_assistant.ai_service import TaeAI
-
+from rest_framework.permissions import IsAuthenticated
 # ------------------------- Celery Tasks -------------------------
 
 @shared_task
@@ -74,6 +74,7 @@ def generate_dashboard_recommendations(user_id, learning_time, completed_courses
 
 class DashboardStatsView(APIView):
     """Retrieve and update a user's dashboard stats"""
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, user_id):
         user = get_object_or_404(CustomUser, id=user_id)

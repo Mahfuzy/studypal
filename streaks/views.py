@@ -5,6 +5,7 @@ from celery import shared_task
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
 from .models import StudyStreak, Achievement, XPSystem, Badge, Leaderboard
 from .serializers import (
     StudyStreakSerializer, AchievementSerializer, XPSystemSerializer,
@@ -102,6 +103,7 @@ def generate_leaderboard_insights():
 
 ## 📌 Study Streak Views
 class StudyStreakListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
     queryset = StudyStreak.objects.all()
     serializer_class = StudyStreakSerializer
 
@@ -110,6 +112,7 @@ class StudyStreakListCreateView(generics.ListCreateAPIView):
         generate_streak_insights.delay(streak.id)
 
 class StudyStreakDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
     queryset = StudyStreak.objects.all()
     serializer_class = StudyStreakSerializer
 
@@ -119,6 +122,7 @@ class StudyStreakDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 ## 📌 Achievement Views
 class AchievementListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
     queryset = Achievement.objects.all()
     serializer_class = AchievementSerializer
 
@@ -127,6 +131,7 @@ class AchievementListCreateView(generics.ListCreateAPIView):
         generate_achievement_insights.delay(achievement.id)
 
 class AchievementDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
     queryset = Achievement.objects.all()
     serializer_class = AchievementSerializer
 
@@ -136,6 +141,7 @@ class AchievementDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 ## 📌 XP System Views
 class XPSystemListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
     queryset = XPSystem.objects.all()
     serializer_class = XPSystemSerializer
 
@@ -144,6 +150,7 @@ class XPSystemListCreateView(generics.ListCreateAPIView):
         generate_xp_insights.delay(xp_system.id)
 
 class XPSystemDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
     queryset = XPSystem.objects.all()
     serializer_class = XPSystemSerializer
 
@@ -153,6 +160,7 @@ class XPSystemDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 ## 📌 Leaderboard Views
 class LeaderboardListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
     queryset = Leaderboard.objects.all()
     serializer_class = LeaderboardSerializer
 
@@ -165,6 +173,7 @@ class LeaderboardListView(generics.ListAPIView):
         })
 
 class LeaderboardDetailView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
     queryset = Leaderboard.objects.all()
     serializer_class = LeaderboardSerializer
 
@@ -184,10 +193,12 @@ class LeaderboardDetailView(generics.RetrieveAPIView):
 
 ## 📌 Badge Views
 class BadgeListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
     queryset = Badge.objects.all()
     serializer_class = BadgeSerializer
 
 class BadgeDetailView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
     queryset = Badge.objects.all()
     serializer_class = BadgeSerializer
 
@@ -195,6 +206,7 @@ class BadgeDetailView(generics.RetrieveAPIView):
 
 class UpdateStreakView(APIView):
     """Updates the user's study streak and triggers AI insights."""
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, user_id):
         streak, created = StudyStreak.objects.get_or_create(user_id=user_id)
@@ -206,6 +218,7 @@ class UpdateStreakView(APIView):
 
 class AddXPView(APIView):
     """Adds XP to user's XP system and unlocks badges if applicable."""
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, user_id):
         xp_system, created = XPSystem.objects.get_or_create(user_id=user_id)

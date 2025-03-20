@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from .models import StudySession, Exam
 from .serializers import StudySessionSerializer, ExamSerializer
 from study_assistant.ai_service import TaeAI
+from rest_framework.permissions import IsAuthenticated
 
 # Initialize AI assistant
 ai_assistant = TaeAI()
@@ -23,6 +24,7 @@ def generate_ai_insights(prompt):
 # ✅ Study Session List/Create View (with AI-powered insights)
 class StudySessionListCreateView(generics.ListCreateAPIView):
     serializer_class = StudySessionSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return StudySession.objects.filter(user=self.request.user)
@@ -48,6 +50,7 @@ class StudySessionListCreateView(generics.ListCreateAPIView):
 # ✅ Study Session Detail (Update AI insights)
 class StudySessionDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = StudySessionSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return StudySession.objects.filter(user=self.request.user)
@@ -70,6 +73,7 @@ class StudySessionDetailView(generics.RetrieveUpdateDestroyAPIView):
 # ✅ Exam List/Create View (with AI-powered insights)
 class ExamListCreateView(generics.ListCreateAPIView):
     serializer_class = ExamSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return Exam.objects.filter(user=self.request.user)
@@ -93,6 +97,7 @@ class ExamListCreateView(generics.ListCreateAPIView):
 # ✅ Exam Detail (Update AI insights)
 class ExamDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ExamSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return Exam.objects.filter(user=self.request.user)
@@ -116,6 +121,7 @@ class ExamDetailView(generics.RetrieveUpdateDestroyAPIView):
 # ✅ Generate Study Timetable (Async AI processing)
 class GenerateTimetableView(APIView):
     """Generates an AI-powered study timetable based on user inputs, study sessions, and exams"""
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         user = request.user
@@ -153,6 +159,7 @@ class GenerateTimetableView(APIView):
 # ✅ Check AI Task Status
 class TaskStatusView(APIView):
     """Check the status of an AI Celery task"""
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, task_id):
         task = AsyncResult(task_id)

@@ -4,6 +4,7 @@ from celery import shared_task
 from .models import Quiz, Question, Answer, QuizAttempt
 from .serializers import QuizSerializer, QuestionSerializer, AnswerSerializer, QuizAttemptSerializer
 from study_assistant.ai_service import TaeAI
+from rest_framework.permissions import IsAuthenticated
 
 # ------------------------- Celery Tasks -------------------------
 
@@ -92,6 +93,7 @@ def generate_quiz_attempt_analysis(attempt_id):
 
 class QuizListCreateView(generics.ListCreateAPIView):
     """List and create quizzes with AI-generated insights."""
+    permission_classes = [IsAuthenticated]
     queryset = Quiz.objects.all()
     serializer_class = QuizSerializer
 
@@ -101,6 +103,7 @@ class QuizListCreateView(generics.ListCreateAPIView):
 
 class QuizDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Retrieve, update, or delete a quiz with AI-powered insights."""
+    permission_classes = IsAuthenticated
     queryset = Quiz.objects.all()
     serializer_class = QuizSerializer
 
@@ -110,6 +113,7 @@ class QuizDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class QuestionListCreateView(generics.ListCreateAPIView):
     """List and create questions with AI-assisted insights."""
+    permission_classes = IsAuthenticated
     serializer_class = QuestionSerializer
 
     def get_queryset(self):
@@ -121,6 +125,7 @@ class QuestionListCreateView(generics.ListCreateAPIView):
 
 class QuestionDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Retrieve, update, or delete a question with AI-powered improvements."""
+    permission_classes = IsAuthenticated
     queryset = Question.objects.all()
     serializer_class = QuestionSerializer
 
@@ -129,6 +134,7 @@ class QuestionDetailView(generics.RetrieveUpdateDestroyAPIView):
         generate_question_insights.delay(question.id)
 
 class AnswerListCreateView(generics.ListCreateAPIView):
+    permission_classes = IsAuthenticated
     """List and create answers with AI-generated explanations."""
     serializer_class = AnswerSerializer
 
@@ -140,6 +146,7 @@ class AnswerListCreateView(generics.ListCreateAPIView):
         generate_answer_explanation.delay(answer.id)
 
 class AnswerDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = IsAuthenticated
     """Retrieve, update, or delete an answer with AI-powered assessments."""
     queryset = Answer.objects.all()
     serializer_class = AnswerSerializer
@@ -149,6 +156,7 @@ class AnswerDetailView(generics.RetrieveUpdateDestroyAPIView):
         generate_answer_explanation.delay(answer.id)
 
 class QuizAttemptListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
     """List and create quiz attempts with AI-generated recommendations."""
     serializer_class = QuizAttemptSerializer
 
@@ -160,6 +168,7 @@ class QuizAttemptListCreateView(generics.ListCreateAPIView):
         generate_quiz_attempt_analysis.delay(attempt.id)
 
 class QuizAttemptDetailView(generics.RetrieveUpdateAPIView):
+    permission_classes = [IsAuthenticated]
     """Retrieve and update quiz attempts with AI performance analysis."""
     queryset = QuizAttempt.objects.all()
     serializer_class = QuizAttemptSerializer
