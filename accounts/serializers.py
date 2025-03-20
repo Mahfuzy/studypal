@@ -6,24 +6,29 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "email", "first_name", "last_name"]
+        fields = ["id", "email", "first_name", "last_name", 'username']
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
-    confirm_password = serializers.CharField(write_only=True)
+    name = serializers.CharField(write_only=True)
+
 
     class Meta:
         model = User
-        fields = ["email", "password", "confirm_password", "first_name", "last_name"]
-
-    def validate(self, data):
-        if data["password"] != data["confirm_password"]:
-            raise serializers.ValidationError("Passwords do not match")
-        return data
+        fields = ["email", "password", "name", "username"]
 
     def create(self, validated_data):
-        validated_data.pop("confirm_password")
-        return User.objects.create_user(**validated_data)
+        name_parts = validated_data["name"].split(maxsplit=1)
+        first_name = name_parts[0]
+        last_name = name_parts[1] if len(name_parts) > 1 else ""
+
+        return User.objects.create_user(
+            email=validated_data["email"],
+            password=validated_data["password"],
+            first_name=first_name,
+            last_name=last_name,
+            username=validated_data["username"],
+        )
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
