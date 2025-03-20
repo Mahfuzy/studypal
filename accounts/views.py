@@ -1,4 +1,3 @@
-import os
 from django.contrib.auth import get_user_model, login, authenticate
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -93,14 +92,6 @@ class GoogleAuthView(APIView):
             "refresh_token": str(refresh),
         }, status=status.HTTP_200_OK)
         
-from django.http import JsonResponse
-from django.conf import settings
-
-def google_client_id(request):
-    client_id = os.getenv("GOOGLE_CLIENT_ID")  # Fetch from environment variables
-    if not client_id:
-        return JsonResponse({"error": "Google Client ID not set"}, status=400)
-    return JsonResponse({"client_id": client_id})
 
 
 class UserListView(ListAPIView):
