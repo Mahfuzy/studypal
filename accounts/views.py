@@ -91,6 +91,13 @@ class GoogleAuthView(APIView):
             "access_token": access_token,
             "refresh_token": str(refresh),
         }, status=status.HTTP_200_OK)
+        
+from django.http import JsonResponse
+from django.conf import settings
+
+def get_google_client_id(request):
+    return JsonResponse({"client_id": settings.GOOGLE_CLIENT_ID})
+
 
 class UserListView(ListAPIView):
     queryset = User.objects.all()
