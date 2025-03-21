@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "corsheaders",
     'rest_framework',
     'drf_spectacular',
+    'drf_yasg',
     'rest_framework.authtoken',
     'allauth',
     'allauth.account',
@@ -244,15 +245,15 @@ DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": "redis://redis:6379/1",
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "cache_table",  # Store cached data in DB
     }
 }
 
+# Celery without Redis (Uses in-memory queue)
+CELERY_BROKER_URL = "redis://red-cveg459c1ekr73eeot6g:6379"
 
 
-# Celery Configuration
-CELERY_BROKER_URL = '"redis://redis:6379/1"'  # Using Redis as the broker
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 
@@ -260,9 +261,7 @@ ASGI_APPLICATION = 'studypal.asgi.application'
 
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels.layers.RedisChannelLayer",
-        "CONFIG": {"hosts": [("127.0.0.1", 6379)]},
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
     }
 }
-
 

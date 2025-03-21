@@ -1,6 +1,5 @@
 import json
 import logging
-from celery import shared_task
 from django.utils.timezone import now
 from django.core.mail import send_mail
 from django.conf import settings
@@ -10,7 +9,6 @@ from .models import Notification, NotificationPreference, User
 
 logger = logging.getLogger(__name__)
 
-@shared_task
 def send_notification(user_id, title, message, notification_type="system", source_id=None, source_model=None, priority=0, ai_enhanced=False, ai_insights=None):
     """Creates and sends a notification, respecting user preferences."""
 
@@ -80,3 +78,9 @@ def send_notification(user_id, title, message, notification_type="system", sourc
         logger.error(f"❌ Failed to send real-time notification: {str(e)}")
 
     return f"✅ Notification sent to {user.username}"
+
+def some_task_function():
+    # Task logic here
+    pass
+
+# Remove any Celery-specific logic and call the function directly where needed.

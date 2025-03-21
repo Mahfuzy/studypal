@@ -6,11 +6,11 @@ from django.http import JsonResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from celery.result import AsyncResult
-from celery import shared_task
 from .serializers import AIRequestSerializer
 from google import genai
 from docx import Document
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 # ✅ System Instruction for AI
 system_instruction = """
@@ -34,9 +34,6 @@ Your role is to help students by providing **both direct answers and explanation
 - If it's an **image (screenshot of notes, graphs, diagrams)**, describe the content and explain its relevance.
 """
 
-
-# ✅ Celery Task for File Processing
-@shared_task
 def process_uploaded_file(file_bytes, file_name):
     """Processes an uploaded file and returns AI-generated insights."""
     client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
@@ -82,6 +79,30 @@ def process_uploaded_file(file_bytes, file_name):
 class TaeAIView(APIView):
     """Handles AI study assistant queries via Google Gemini API, including file processing."""
 
+    @swagger_auto_schema(
+        operation_description="Send a query to the AI study assistant or upload a file for processing",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'query': openapi.Schema(type=openapi.TYPE_STRING, description='The question or prompt for the AI'),
+                'file': openapi.Schema(type=openapi.TYPE_FILE, description='Optional file to process (PDF or DOCX)'),
+            },
+            required=['query']
+        ),
+        responses={
+            200: openapi.Response(
+                description="Query processed successfully",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'response': openapi.Schema(type=openapi.TYPE_STRING)
+                    }
+                )
+            ),
+            400: "Bad Request",
+            500: "Internal Server Error"
+        }
+    )
     def post(self, request):
         serializer = AIRequestSerializer(data=request.data)
         if serializer.is_valid():
@@ -99,9 +120,9 @@ class TaeAIView(APIView):
 
             try:
                 if uploaded_file:
-                    # ✅ Offload File Processing to Celery
-                    task = process_uploaded_file.delay(uploaded_file.read(), uploaded_file.name)
-                    return Response({"task_id": task.id}, status=status.HTTP_202_ACCEPTED)
+                    # ✅ Process File
+                    result = process_uploaded_file(uploaded_file.read(), uploaded_file.name)
+                    return Response(result)
 
                 else:
                     # ✅ Process Text Query
@@ -121,18 +142,6 @@ class TaeAIView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# ✅ API to Check Task Status
-class TaskStatusView(APIView):
-    """Check the status of a Celery task"""
-
-    def get(self, request, task_id):
-        task = AsyncResult(task_id)
-
-        if task.state == "PENDING":
-            return Response({"status": "Processing"}, status=status.HTTP_202_ACCEPTED)
-        elif task.state == "SUCCESS":
-            return Response({"status": "Completed", "response": task.result})
-        elif task.state == "FAILURE":
-            return Response({"status": "Failed", "error": str(task.result)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        else:
-            return Response({"status": task.state}, status=status.HTTP_202_ACCEPTED)
+def some_task_function():
+    # Task logic here
+    pass

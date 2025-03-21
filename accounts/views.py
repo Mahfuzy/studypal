@@ -1,57 +1,77 @@
 from django.contrib.auth import get_user_model, login, authenticate
-from rest_framework.views import APIView
+from rest_framework import generics, status
 from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 import requests
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 from .serializers import UserSerializer, RegisterSerializer, LoginSerializer, PasswordChangeSerializer
+from rest_framework.views import APIView
 
 User = get_user_model()
 
-class RegisterView(APIView):
-    def post(self, request):
-        serializer = RegisterSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            refresh = RefreshToken.for_user(user)
-            return Response({
-                "user": UserSerializer(user).data,
-                "access_token": str(refresh.access_token),
-                "refresh_token": str(refresh),
-            }, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+class RegisterView(generics.CreateAPIView):
+    serializer_class = RegisterSerializer
 
-class LoginView(APIView):
-    def post(self, request):
-        serializer = LoginSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.validated_data["user"]
-            refresh = RefreshToken.for_user(user)
-            return Response({
-                "user": UserSerializer(user).data,
-                "access_token": str(refresh.access_token),
-                "refresh_token": str(refresh),
-            })
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            "user": UserSerializer(user).data,
+            "access_token": str(refresh.access_token),
+            "refresh_token": str(refresh),
+        }, status=status.HTTP_201_CREATED)
 
-class PasswordChangeView(APIView):
+class LoginView(generics.CreateAPIView):
+    serializer_class = LoginSerializer
+
+    # @swagger_auto_schema(
+    #     operation_description="Login user and get JWT tokens",
+    #     responses={
+    #         200: openapi.Response(
+    #             description="Login successful",
+    #             schema=openapi.Schema(
+    #                 type=openapi.TYPE_OBJECT,
+    #                 properties={
+    #                     'user': UserSerializer,
+    #                     'access_token': openapi.Schema(type=openapi.TYPE_STRING),
+    #                     'refresh_token': openapi.Schema(type=openapi.TYPE_STRING),
+    #                 }
+    #             )
+    #         ),
+    #         400: "Bad Request"
+    #     }
+    # )
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data["user"]
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            "user": UserSerializer(user).data,
+            "access_token": str(refresh.access_token),
+            "refresh_token": str(refresh),
+        })
+
+class PasswordChangeView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = PasswordChangeSerializer
 
-    def post(self, request):
-        serializer = PasswordChangeSerializer(data=request.data)
-        if serializer.is_valid():
-            user = request.user
-            if not user.check_password(serializer.validated_data["old_password"]):
-                return Response({"error": "Invalid old password"}, status=status.HTTP_400_BAD_REQUEST)
-            user.set_password(serializer.validated_data["new_password"])
-            user.save()
-            return Response({"message": "Password changed successfully"})
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = request.user
+        if not user.check_password(serializer.validated_data["old_password"]):
+            return Response({"error": "Invalid old password"}, status=status.HTTP_400_BAD_REQUEST)
+        user.set_password(serializer.validated_data["new_password"])
+        user.save()
+        return Response({"message": "Password changed successfully"})
 
 class GoogleAuthView(APIView):
-    def post(self, request):
+    def post(self, request, *args, **kwargs):
         id_token = request.data.get("id_token")
         if not id_token:
             return Response({"error": "ID token is required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -91,10 +111,21 @@ class GoogleAuthView(APIView):
             "access_token": access_token,
             "refresh_token": str(refresh),
         }, status=status.HTTP_200_OK)
-        
 
-
-class UserListView(ListAPIView):
+class UserListView(generics.ListAPIView):
     queryset = User.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated]  # Requires authentication to view users
+    serializer_class = UserSerializer 
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="List all users",
+        responses={
+            200: openapi.Response(
+                description="List of users",
+                schema=UserSerializer(many=True)
+            ),
+            401: "Unauthorized"
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)

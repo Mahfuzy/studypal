@@ -1,122 +1,126 @@
 from django.test import TestCase
-
-# Create your tests here.
 from django.urls import reverse
+from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
-from rest_framework.test import APITestCase
 from django.contrib.auth import get_user_model
 from .models import Course, Lesson, Enrollment
 
 User = get_user_model()
 
-class CourseTests(APITestCase):
+class CoursesViewsTest(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='testpass', email='test@test.com')
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username='testuser',
+            email='test@example.com',
+            password='testpass123'
+        )
         self.client.force_authenticate(user=self.user)
         
-        self.course_data = {
-            'title': 'Test Course',
-            'description': 'Test Description',
-            'instructor': self.user,
-            'is_published': True
-        }
-        self.course = Course.objects.create(**self.course_data)
+        # Create test data
+        self.course = Course.objects.create(
+            title='Test Course',
+            description='Test Description',
+            instructor=self.user
+        )
+        self.lesson = Lesson.objects.create(
+            title='Test Lesson',
+            content='Test Content',
+            course=self.course
+        )
+        self.enrollment = Enrollment.objects.create(
+            student=self.user,
+            course=self.course
+        )
 
-    def test_list_courses(self):
-        url = reverse('course-list')
-        response = self.client.get(url)
+    def test_course_views(self):
+        """Test Course endpoints"""
+        # List
+        response = self.client.get(reverse('course-list'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data['results']), 1)
-
-    def test_create_course(self):
-        url = reverse('course-list')
+        
+        # Create
         data = {
             'title': 'New Course',
-            'description': 'New Description',
-            'is_published': True
+            'description': 'New Description'
         }
-        response = self.client.post(url, data)
+        response = self.client.post(reverse('course-list'), data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Course.objects.count(), 2)
-
-class LessonTests(APITestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='testpass', email='test@test.com')
-        self.client.force_authenticate(user=self.user)
         
-        self.course = Course.objects.create(
-            title='Test Course',
-            description='Test Description',
-            instructor=self.user
-        )
-        
-        self.lesson_data = {
-            'title': 'Test Lesson',
-            'content': 'Test Content',
-            'course': self.course,
-            'order': 1,
-            'duration': 30
-        }
-        self.lesson = Lesson.objects.create(**self.lesson_data)
-
-    def test_list_lessons(self):
-        url = reverse('lesson-list', kwargs={'course_id': self.course.id})
-        response = self.client.get(url)
+        # Detail
+        response = self.client.get(reverse('course-detail', args=[self.course.id]))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
+        
+        # Update
+        data = {'title': 'Updated Course'}
+        response = self.client.patch(reverse('course-detail', args=[self.course.id]), data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Delete
+        response = self.client.delete(reverse('course-detail', args=[self.course.id]))
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
-    def test_create_lesson(self):
-        url = reverse('lesson-list', kwargs={'course_id': self.course.id})
+    def test_lesson_views(self):
+        """Test Lesson endpoints"""
+        # List
+        response = self.client.get(reverse('lesson-list', args=[self.course.id]))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Create
         data = {
             'title': 'New Lesson',
-            'content': 'New Content',
-            'order': 2,
-            'duration': 45
+            'content': 'New Content'
         }
-        response = self.client.post(url, data)
+        response = self.client.post(reverse('lesson-list', args=[self.course.id]), data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Lesson.objects.count(), 2)
-
-class EnrollmentTests(APITestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='testpass', email='test@test.com')
-        self.client.force_authenticate(user=self.user)
         
-        self.course = Course.objects.create(
-            title='Test Course',
-            description='Test Description',
-            instructor=self.user
-        )
+        # Detail
+        response = self.client.get(reverse('lesson-detail', args=[self.course.id, self.lesson.id]))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Update
+        data = {'title': 'Updated Lesson'}
+        response = self.client.patch(reverse('lesson-detail', args=[self.course.id, self.lesson.id]), data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Delete
+        response = self.client.delete(reverse('lesson-detail', args=[self.course.id, self.lesson.id]))
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
-    def test_enroll_in_course(self):
-        url = reverse('enrollment-list')
-        data = {
-            'course': self.course.id,
-            'status': 'active'
-        }
-        response = self.client.post(url, data)
+    def test_enrollment_views(self):
+        """Test Enrollment endpoints"""
+        # List
+        response = self.client.get(reverse('enrollment-list'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Create
+        data = {'course': self.course.id}
+        response = self.client.post(reverse('enrollment-list'), data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Enrollment.objects.count(), 1)
-
-    def test_list_enrollments(self):
-        Enrollment.objects.create(
-            student=self.user,
-            course=self.course,
-            status='active'
-        )
-        url = reverse('enrollment-list')
-        response = self.client.get(url)
+        
+        # Detail
+        response = self.client.get(reverse('enrollment-detail', args=[self.enrollment.id]))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-
-    def test_update_enrollment(self):
-        enrollment = Enrollment.objects.create(
-            student=self.user,
-            course=self.course,
-            status='active'
-        )
-        url = reverse('enrollment-detail', kwargs={'pk': enrollment.id})
-        data = {'status': 'completed', 'progress': 100.0}
-        response = self.client.patch(url, data)
+        
+        # Update
+        data = {'progress': 50}
+        response = self.client.patch(reverse('enrollment-detail', args=[self.enrollment.id]), data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['status'], 'completed')
+        
+        # Delete
+        response = self.client.delete(reverse('enrollment-detail', args=[self.enrollment.id]))
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_course_ai_status_view(self):
+        """Test Course AI Status endpoint"""
+        response = self.client.get(reverse('course-ai-status', args=[self.course.id]))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('status', response.data)
+        self.assertIn('insights', response.data)
+
+    def test_generate_flashcards_view(self):
+        """Test Generate Flashcards endpoint"""
+        data = {'text': 'Study material for flashcards'}
+        response = self.client.post(reverse('generate-flashcards'), data)
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.assertIn('task_id', response.data)

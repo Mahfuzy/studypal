@@ -1,23 +1,20 @@
 import time
 from django.core.cache import cache
-from celery import shared_task
 from django.shortcuts import get_object_or_404
-from rest_framework import generics, permissions, views, status
+from rest_framework import generics, permissions, status
 from rest_framework.response import Response
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 from .models import Course, Lesson, Enrollment
-from .serializers import CourseSerializer, LessonSerializer, EnrollmentSerializer
+from .serializers import CourseSerializer, LessonSerializer, EnrollmentSerializer, GenerateFlashcardsSerializer
 from study_assistant.ai_service import TaeAI
 
-# ------------------------- Celery AI Tasks -------------------------
-
-@shared_task
 def generate_flashcards(study_text):
     """Convert study material into flashcards using AI."""
     ai_assistant = TaeAI()
     prompt = f"Convert this study material into flashcards with questions and answers:\n{study_text}"
     return ai_assistant.process_text(prompt)
 
-@shared_task
 def generate_course_insights(course_id):
     """Generate AI insights for a course."""
     course = Course.objects.filter(id=course_id).first()
@@ -40,7 +37,6 @@ def generate_course_insights(course_id):
     cache.set(cache_key, insights, timeout=3600)  
     return insights
 
-@shared_task
 def generate_lesson_insights(lesson_id):
     """Generate AI insights for a lesson."""
     lesson = Lesson.objects.filter(id=lesson_id).first()
@@ -63,7 +59,6 @@ def generate_lesson_insights(lesson_id):
     cache.set(cache_key, insights, timeout=3600)  
     return insights
 
-@shared_task
 def generate_enrollment_study_plan(enrollment_id):
     """Generate a personalized study plan for an enrollment."""
     enrollment = Enrollment.objects.filter(id=enrollment_id).first()
@@ -86,7 +81,6 @@ def generate_enrollment_study_plan(enrollment_id):
     cache.set(cache_key, study_plan, timeout=3600)  
     return study_plan
 
-@shared_task
 def analyze_enrollment_progress(enrollment_id):
     """Analyze student progress based on their course enrollment."""
     enrollment = Enrollment.objects.filter(id=enrollment_id).first()
@@ -123,14 +117,14 @@ def rate_limited_ai_request(task_func, obj_id, cache_key, rate_limit=60):
         return cached_result if cached_result else "Rate limit hit, skipping AI request."
 
     cache.set(f'last_run_{cache_key}', time.time(), timeout=rate_limit)
-    task_func.delay(obj_id)
-    return "AI request started, check back later."
+    return task_func(obj_id)
 
 # ------------------------- API Views -------------------------
 
-class CourseAIStatusView(views.APIView):
+class CourseAIStatusView(generics.RetrieveAPIView):
     """Check if AI insights are available for a course."""
-    def get(self, request, course_id):
+    
+    def retrieve(self, request, course_id):
         insights = cache.get(f'course_insights_{course_id}')
         return Response({
             "status": "ready" if insights else "processing",
@@ -160,17 +154,16 @@ class LessonListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Lesson.objects.none()
         return Lesson.objects.filter(course_id=self.kwargs['course_id'])
 
     def perform_create(self, serializer):
         course = get_object_or_404(Course, id=self.kwargs['course_id'])
         lesson = serializer.save(course=course)
-
-        # Ensure the AI request doesn't crash the process
         try:
             rate_limited_ai_request(generate_lesson_insights, lesson.id, f'lesson_insights_{lesson.id}')
         except Exception as e:
-            # Log error instead of failing request (adjust logging as needed)
             print(f"AI request failed for Lesson {lesson.id}: {e}")
 
 class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -178,23 +171,24 @@ class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Lesson.objects.none()
         return Lesson.objects.filter(course_id=self.kwargs['course_id'])
 
     def perform_update(self, serializer):
         lesson = serializer.save()
-
-        # Ensure the AI request doesn't crash the process
         try:
             rate_limited_ai_request(generate_lesson_insights, lesson.id, f'lesson_insights_{lesson.id}')
         except Exception as e:
             print(f"AI request failed for Lesson {lesson.id}: {e}")
-        
 
 class EnrollmentListCreateView(generics.ListCreateAPIView):
     serializer_class = EnrollmentSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Enrollment.objects.none()
         return Enrollment.objects.filter(student=self.request.user)
 
     def perform_create(self, serializer):
@@ -206,24 +200,25 @@ class EnrollmentDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Enrollment.objects.none()
         return Enrollment.objects.filter(student=self.request.user)
 
     def perform_update(self, serializer):
         enrollment = serializer.save()
-
         previous_progress = cache.get(f'enrollment_progress_{enrollment.id}', 0)
         if enrollment.progress - previous_progress >= 20:
             rate_limited_ai_request(generate_enrollment_study_plan, enrollment.id, f'enrollment_study_plan_{enrollment.id}')
-        
         rate_limited_ai_request(analyze_enrollment_progress, enrollment.id, f'enrollment_progress_{enrollment.id}')
 
-class GenerateFlashcardsView(views.APIView):
+class GenerateFlashcardsView(generics.CreateAPIView):
     """AI-powered flashcard generator"""
+    serializer_class = GenerateFlashcardsSerializer
     
-    def post(self, request):
+    def create(self, request, *args, **kwargs):
         study_text = request.data.get("text")
         if not study_text:
             return Response({"error": "Study text is required"}, status=400)
 
-        task = generate_flashcards.delay(study_text)
-        return Response({"task_id": task.id}, status=status.HTTP_202_ACCEPTED)
+        flashcards = generate_flashcards(study_text)
+        return Response({"flashcards": flashcards}, status=status.HTTP_200_OK)
