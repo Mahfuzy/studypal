@@ -265,31 +265,31 @@ class GenerateTimetableView(APIView):
     """Generates an AI-powered study timetable based on user inputs, study sessions, and exams"""
     permission_classes = [IsAuthenticated]
 
-    # @swagger_auto_schema(
-    #     operation_description="Generate an AI-powered study timetable",
-    #     request_body=openapi.Schema(
-    #         type=openapi.TYPE_OBJECT,
-    #         properties={
-    #             'available_hours': openapi.Schema(type=openapi.TYPE_INTEGER, description='Available study hours per day'),
-    #             'study_goals': openapi.Schema(type=openapi.TYPE_STRING, description='Custom study goals'),
-    #             'priority_subjects': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_STRING), description='List of priority subjects')
-    #         },
-    #         required=['available_hours']
-    #     ),
-    #     responses={
-    #         200: openapi.Response(
-    #             description="Timetable generated successfully",
-    #             schema=openapi.Schema(
-    #                 type=openapi.TYPE_OBJECT,
-    #                 properties={
-    #                     'timetable': openapi.Schema(type=openapi.TYPE_STRING)
-    #                 }
-    #             )
-    #         ),
-    #         400: "Bad Request",
-    #         401: "Unauthorized"
-    #     }
-    # )
+    @swagger_auto_schema(
+        operation_description="Generate an AI-powered study timetable",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'available_hours': openapi.Schema(type=openapi.TYPE_INTEGER, description='Available study hours per day'),
+                'study_goals': openapi.Schema(type=openapi.TYPE_STRING, description='Custom study goals'),
+                'priority_subjects': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_STRING), description='List of priority subjects')
+            },
+            required=['available_hours']
+        ),
+        responses={
+            200: openapi.Response(
+                description="Timetable generated successfully",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'timetable': openapi.Schema(type=openapi.TYPE_STRING)
+                    }
+                )
+            ),
+            400: "Bad Request",
+            401: "Unauthorized"
+        }
+    )
     def post(self, request):
         user = request.user
         available_hours = request.data.get("available_hours", 4)

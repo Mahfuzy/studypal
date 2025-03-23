@@ -11,7 +11,7 @@ from google import genai
 from docx import Document
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-
+from rest_framework.permissions import AllowAny
 # ✅ System Instruction for AI
 system_instruction = """
 You are Tae, a highly knowledgeable and friendly AI-powered study assistant.
@@ -34,9 +34,10 @@ Your role is to help students by providing **both direct answers and explanation
 - If it's an **image (screenshot of notes, graphs, diagrams)**, describe the content and explain its relevance.
 """
 
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+
 def process_uploaded_file(file_bytes, file_name):
     """Processes an uploaded file and returns AI-generated insights."""
-    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
     file_extension = os.path.splitext(file_name)[1].lower()
 
     if file_extension == ".docx":
@@ -47,12 +48,11 @@ def process_uploaded_file(file_bytes, file_name):
 
         doc = Document(temp_file_path)
         extracted_text = "\n".join([para.text for para in doc.paragraphs])
+        os.remove(temp_file_path)  # ✅ Clean up
 
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=[f"Summarize this text: {extracted_text}"],
-            config={"max_output_tokens": 500, "temperature": 0.5},
-        )
+        # ✅ AI Summarization
+        chat = client.chats.create(model="gemini-2.0-flash")
+        response = chat.send_message(f"Summarize this document:\n{extracted_text}")
 
     elif file_extension == ".pdf":
         # ✅ Save and process PDF
@@ -61,14 +61,10 @@ def process_uploaded_file(file_bytes, file_name):
             temp_file_path = temp_file.name
 
         my_file = client.files.upload(file=temp_file_path)
-
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=["Can you summarize this file?", my_file],
-            config={"max_output_tokens": 500, "temperature": 0.5},
-        )
-
         os.remove(temp_file_path)  # ✅ Clean up
+
+        chat = client.chats.create(model="gemini-2.0-flash")
+        response = chat.send_message("Can you summarize this file?", file=my_file)
 
     else:
         return {"error": "Unsupported file type"}
@@ -77,6 +73,7 @@ def process_uploaded_file(file_bytes, file_name):
 
 # ✅ Main API View
 class TaeAIView(APIView):
+    permission_classes = [AllowAny]
     """Handles AI study assistant queries via Google Gemini API, including file processing."""
 
     @swagger_auto_schema(
@@ -106,8 +103,17 @@ class TaeAIView(APIView):
     def post(self, request):
         serializer = AIRequestSerializer(data=request.data)
         if serializer.is_valid():
+            user_id = request.user.id if request.user.is_authenticated else "guest"
             prompt = serializer.validated_data.get("query")
             uploaded_file = request.FILES.get("file")
+
+            # ✅ Retrieve Chat Session for Conversation Memory
+            chat_session_key = f"chat_session_{user_id}"
+            chat = cache.get(chat_session_key)
+
+            if not chat:
+                chat = client.chats.create(model="gemini-2.0-flash")
+                cache.set(chat_session_key, chat, timeout=86400)  # ✅ Store for 24 hours
 
             # ✅ Check Cache Before AI Call
             query_hash = hashlib.md5(prompt.encode()).hexdigest()
@@ -115,8 +121,6 @@ class TaeAIView(APIView):
 
             if cached_response:
                 return Response({"response": cached_response})  # ✅ Return cached result
-
-            client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
             try:
                 if uploaded_file:
@@ -126,12 +130,7 @@ class TaeAIView(APIView):
 
                 else:
                     # ✅ Process Text Query
-                    response = client.models.generate_content(
-                        model="gemini-2.0-flash",
-                        contents=[prompt],
-                        config={"max_output_tokens": 400, "temperature": 0.5},
-                    )
-
+                    response = chat.send_message(prompt)
                     response_text = response.text
                     cache.set(query_hash, response_text, timeout=86400)  # ✅ Cache for 24 hours
 
@@ -141,7 +140,3 @@ class TaeAIView(APIView):
                 return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-def some_task_function():
-    # Task logic here
-    pass

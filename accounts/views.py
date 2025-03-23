@@ -129,3 +129,76 @@ class UserListView(generics.ListAPIView):
     )
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
+
+class UserProfileView(generics.RetrieveUpdateAPIView):
+    """View for retrieving and updating the authenticated user's profile"""
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="Get authenticated user's profile",
+        responses={
+            200: openapi.Response(
+                description="User profile details",
+                schema=UserSerializer
+            ),
+            401: "Unauthorized"
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Update authenticated user's profile",
+        request_body=UserSerializer,
+        responses={
+            200: openapi.Response(
+                description="Profile updated successfully",
+                schema=UserSerializer
+            ),
+            400: "Bad Request",
+            401: "Unauthorized"
+        }
+    )
+    def put(self, request, *args, **kwargs):
+        return super().put(request, *args, **kwargs)
+
+    def get_object(self):
+        return self.request.user
+
+    def perform_update(self, serializer):
+        # Add any additional logic before saving
+        serializer.save()
+
+
+class LogoutView(generics.GenericAPIView):
+    """View for user logout"""
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="Logout user and invalidate token",
+        responses={
+            200: openapi.Response(
+                description="Successfully logged out",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'detail': openapi.Schema(type=openapi.TYPE_STRING)
+                    }
+                )
+            ),
+            401: "Unauthorized"
+        }
+    )
+    def post(self, request):
+        try:
+            # Get the token from the request
+            auth_header = request.headers.get('Authorization')
+            if auth_header and ' ' in auth_header:
+                token = auth_header.split(' ')[1]
+                # Add token to blacklist
+                RefreshToken(token).blacklist()
+            
+            return Response({'detail': 'Successfully logged out'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'detail': 'Error during logout'}, status=status.HTTP_400_BAD_REQUEST)

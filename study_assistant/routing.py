@@ -1,6 +1,6 @@
 from django.urls import path
-from .consumers import AIProcessingConsumer
+from .consumers import TaeAIConsumer
 
 websocket_urlpatterns = [
-    path("ws/task_status/<str:task_id>/", AIProcessingConsumer.as_asgi()),
+    path("ws/ai_chat/", TaeAIConsumer.as_asgi()),
 ]
