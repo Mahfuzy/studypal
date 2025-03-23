@@ -254,7 +254,7 @@ CACHES = {
 }
 
 # Celery without Redis (Uses in-memory queue)
-CELERY_BROKER_URL = "redis://red-cveg459c1ekr73eeot6g:6379"
+# CELERY_BROKER_URL = "redis://red-cvfkgcnnoe9s73bifntg:6379"
 
 
 CELERY_ACCEPT_CONTENT = ['json']
@@ -270,6 +270,7 @@ ASGI_APPLICATION = 'studypal.asgi.application'
 
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {"hosts": ["redis://red-cvfkgcnnoe9s73bifntg:6379"]},
     },
 }
